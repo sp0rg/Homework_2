@@ -1,0 +1,48 @@
+Sub EasyHomework()
+For Each ws In Worksheets
+    'set new column headers in each sheet
+    ws.Range("I1") = "Ticker"
+    ws.Range("J1") = "Total Stock Volume"
+    
+    'Finding last row in <ticker> column A
+    LastRow = ws.Cells(Rows.Count, 1).End(xlUp).Row
+    
+    'for testing I needed to clear out Ticker list from the Advanced Filter
+    'this checks whether or not the range is empty
+    If IsEmpty(ws.Range("I2:J" & LastRow).Value) = False Then
+        ws.Range("I2:J" & LastRow).ClearContents
+    End If
+        
+    'AdvancedFilter https://docs.microsoft.com/en-us/office/vba/api/excel.range.advancedfilter
+    'AdvancedFilter(better link) https://msdn.microsoft.com/en-us/library/microsoft.office.tools.excel.namedrange.advancedfilter.aspx
+    'For this we define the range and use the built-in VBA function AdvancedFilter
+    'Then we add an action and use the copy method
+    'copytorange defines where we're putting the data - I found you only need to put the first cell
+    'and then adding that Unique:=True to the end gives us teh distinct list
+    ws.Range("a2:a" & LastRow).AdvancedFilter Action:=xlFilterCopy, Copytorange:=ws.Range("I2"), Unique:=True
+        
+        'Found an issue with the AdvancedFilter that pastes the first value twice
+        'This compares I2 and I3 and then delete/shifts up
+    If ws.Range("I2") = ws.Range("I3") Then
+        ws.Range("I2").Delete shift:=xlUp
+    End If
+    
+    'Getting a row count of the new distinct list
+    LastRow2 = ws.Cells(Rows.Count, "I").End(xlUp).Row
+    
+    'Creating a variable for the sumifs statement
+    Dim VolumeSum
+    
+    'using a for/next loop, we'll be referencing the row count based on the new column I
+    For i = 2 To LastRow2
+        'bastardized SumIfs function - SumIfs(Range of what we want summarized),
+        '(Range of Column A - to select correct row),
+        '(Each cell to use to bounce against A to identify which rows we're summing)
+        'Regular formula: =SUMIFS(G:G,A:A,I:I)
+        VolumeSum = Application.WorksheetFunction.SumIfs(ws.Range("g2:g" & LastRow), ws.Range("a2:a" & LastRow), ws.Cells(i, "I"))
+        ws.Cells(i, "J").Value = VolumeSum
+        
+    Next i
+    
+Next
+End Sub
